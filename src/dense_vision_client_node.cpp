@@ -103,17 +103,10 @@ public:
 
     void topicCallbackDisparity(const stereo_msgs::DisparityImage::ConstPtr &msg)
     {
-        sensor_msgs::ImageConstPtr depth_constptr(&(msg->image));
-        cv_bridge::CvImageConstPtr cv_ptr_depth = cv_bridge::toCvShare(depth_constptr,
+        cv_bridge::CvImagePtr cv_ptr_depth = cv_bridge::toCvCopy(msg->image,
                                                                   sensor_msgs::image_encodings::TYPE_32FC1);
 
-        double min, max;
-        cv::minMaxIdx(cv_ptr_depth->image, &min, &max);
-
-        cv::Mat depth_matrix;
-        cv::convertScaleAbs(cv_ptr_depth->image, depth_matrix, 255/max);
-
-        IplImage image_depth = depth_matrix;
+        IplImage image_depth =  cv_ptr_depth->image;
 
         depth_mutex_.lock();
         // copy to depth buffer
@@ -137,9 +130,6 @@ public:
             boost::asio::io_service io_service;
             boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 22333));
             boost::asio::ip::tcp::socket socket(io_service);
-
-            boost::array<char,640*480*3> bufferImage;
-            boost::array<float,640*480> bufferDepth;
 
             ros::Rate loop_rate(dense_vision_comm_rate_);
 
