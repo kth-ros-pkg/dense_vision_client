@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="kinect_dense_vision_client" pkg="dense_vision_client" cwd="node" respawn="false" output="screen">
+    <rosparam command="load" file="$(find dense_vision_client)/config/kinect_dense_vision_client.yaml" />
+    <remap from="/kinect_dense_vision_client/rgb" to="/camera/rgb/image_rect_color" />
+    <remap from="/kinect_dense_vision_client/disparity" to="/camera/depth_registered/disparity" />
+  </node>
+
+</launch>

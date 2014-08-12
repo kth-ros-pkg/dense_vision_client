@@ -1,0 +1,33 @@
+<package>
+ <name>dense_vision_client</name>
+  <version>0.0.0</version>
+  <description>
+    Client for sending RGB+Depth images to aragorn for dense vision tracking and receiving back the tracked object poses.
+  </description>
+  <license>BSD</license>
+
+  <url type="website">http://wiki.ros.org/dense_vision_client</url>
+
+  <author email="yaseminb@kth.se">Yasemin Bekiroglu</author>
+  <maintainer email="fevb@kth.se">Francisco Vina</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>boost</build_depend>
+  <build_depend>opencv2</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>stereo_msgs</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>boost</run_depend>
+  <run_depend>opencv2</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>stereo_msgs</run_depend>
+
+</package>
