@@ -15,7 +15,7 @@ Client for sending RGB+Depth images to aragorn for dense vision tracking and rec
         <remap from="/kinect_dense_vision_client/disparity" to="/camera/depth_registered/disparity" />
 
 
-* Execute the **roslaunch** file contained in the `/launch` folder of this package:
+* Execute the **roslaunch** file:
     
         roslaunch dense_vision_client kinect_dense_vision_client.launch
 
