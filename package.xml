@@ -16,8 +16,6 @@
   <build_depend>boost</build_depend>
   <build_depend>opencv2</build_depend>
   <build_depend>cv_bridge</build_depend>
-  <build_depend>image_transport</build_depend>
-  <build_depend>geometry_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>stereo_msgs</build_depend>
 
@@ -25,8 +23,6 @@
   <run_depend>boost</run_depend>
   <run_depend>opencv2</run_depend>
   <run_depend>cv_bridge</run_depend>
-  <run_depend>image_transport</run_depend>
-  <run_depend>geometry_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>stereo_msgs</run_depend>
 
