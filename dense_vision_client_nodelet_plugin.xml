@@ -1,0 +1,7 @@
+<library path="lib/libdense_vision_client_nodelet">
+  <class name="dense_vision_client/DenseVisionClientNodelet" type="dense_vision_client::DenseVisionClientNodelet" base_class_type="nodelet::Nodelet">
+  <description>
+    Nodelet for sending RGB+Disparity images to dense vision server running on Aragorn.
+  </description>
+  </class>
+</library>
