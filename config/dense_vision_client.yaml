@@ -1,2 +1,2 @@
 # rate in Hz at which to communicate with DV server running on Aragorn
-dense_vision_comm_rate: 50.0
+dense_vision_comm_rate: 40.0

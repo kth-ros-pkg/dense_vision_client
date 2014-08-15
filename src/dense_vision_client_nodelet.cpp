@@ -55,7 +55,7 @@ namespace dense_vision_client
 
         void onInit()
         {
-            n_ = getPrivateNodeHandle();
+            n_ = getMTPrivateNodeHandle();
 
             getROSParameters();
 
@@ -87,9 +87,8 @@ namespace dense_vision_client
                                                                          sensor_msgs::image_encodings::BGR8);
 
 
-            IplImage image = cv_ptr_rgb->image;
             uchar *data_img;
-            data_img = (uchar *)image.imageData;
+            data_img = cv_ptr_rgb->image.data;
 
             const unsigned int ch=3;
 
@@ -113,13 +112,13 @@ namespace dense_vision_client
             cv_bridge::CvImagePtr cv_ptr_depth = cv_bridge::toCvCopy(msg->image,
                                                                      sensor_msgs::image_encodings::TYPE_32FC1);
 
-            IplImage image_depth =  cv_ptr_depth->image;
+            uchar *data_depth = cv_ptr_depth->image.data;
 
             depth_mutex_.lock();
             // copy to depth buffer
             for(int i=0;i<480;i++)
             {
-                float *rowptr=(float*)(image_depth.imageData+i*image_depth.widthStep);
+                float *rowptr=(float*)(data_depth + i*640*sizeof(float));
 
                 for(int j=0;j<640;j++)
                 {
@@ -154,10 +153,6 @@ namespace dense_vision_client
                             break; // Connection closed cleanly by peer.
                         else if (error)
                             throw boost::system::system_error(error); // Some other error.
-
-
-                        const unsigned int ch=3;
-
 
                         boost::system::error_code ignored_error;
 
