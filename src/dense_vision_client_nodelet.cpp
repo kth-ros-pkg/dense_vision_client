@@ -43,7 +43,7 @@
 #include <opencv2/opencv.hpp>
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
-#include <iostream>
+#include <dense_vision_client/DenseVisionClient.h>
 
 namespace dense_vision_client
 {
@@ -51,145 +51,19 @@ namespace dense_vision_client
     {
     public:
 
-        ros::NodeHandle n_;
-
         void onInit()
         {
-            n_ = getMTPrivateNodeHandle();
+           ros::NodeHandle nh_private = getMTPrivateNodeHandle();
 
-            getROSParameters();
+           dense_vision_client = boost::shared_ptr<DenseVisionClient>(new DenseVisionClient(nh_private));
+           dense_vision_client->getROSParameters();
+           dense_vision_client->initConnection();
 
-            rgb_subscriber_ = n_.subscribe("rgb", 1, &DenseVisionClientNodelet::topicCallbackRGB, this);
-            disparity_subscriber_ = n_.subscribe("disparity", 1, &DenseVisionClientNodelet::topicCallbackDisparity, this);
-
-            initConnection();
-
-        }
-
-        void getROSParameters()
-        {
-            // rate in Hz at which to communicate with DV server running on Aragorn
-            n_.param("dense_vision_comm_rate", dense_vision_comm_rate_, 30.0);
-
-        }
-
-
-        void initConnection()
-        {
-            boost::thread send_data_to_server_thread(boost::bind(&DenseVisionClientNodelet::sendDataToServer, this));
-            send_data_to_server_thread.detach();
-        }
-
-
-        void topicCallbackRGB(const sensor_msgs::Image::ConstPtr &msg)
-        {
-            cv_bridge::CvImageConstPtr cv_ptr_rgb = cv_bridge::toCvShare(msg,
-                                                                         sensor_msgs::image_encodings::BGR8);
-
-
-            uchar *data_img;
-            data_img = cv_ptr_rgb->image.data;
-
-            const unsigned int ch=3;
-
-            rgb_mutex_.lock();
-            // copy to image buffer
-            for(int i=0;i<480;i++)
-            {
-                for(int j=0;j<640;j++)
-                {
-                    for(int k=0;k<ch;k++)
-                    {
-                        image_buffer_[ch*(i*640+j)+k] = data_img[ch*(i*640+j)+k];
-                    }
-                }
-            }
-            rgb_mutex_.unlock();
-        }
-
-        void topicCallbackDisparity(const stereo_msgs::DisparityImage::ConstPtr &msg)
-        {
-            cv_bridge::CvImagePtr cv_ptr_depth = cv_bridge::toCvCopy(msg->image,
-                                                                     sensor_msgs::image_encodings::TYPE_32FC1);
-
-            uchar *data_depth = cv_ptr_depth->image.data;
-
-            depth_mutex_.lock();
-            // copy to depth buffer
-            for(int i=0;i<480;i++)
-            {
-                float *rowptr=(float*)(data_depth + i*640*sizeof(float));
-
-                for(int j=0;j<640;j++)
-                {
-                    depth_buffer_[i*640+j]=rowptr[j];
-                }
-            }
-            depth_mutex_.unlock();
-        }
-
-        // sends the rgb + depth images to dense vision server via TCP
-        void sendDataToServer()
-        {
-            try
-            {
-                boost::asio::io_service io_service;
-                boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 22333));
-                boost::asio::ip::tcp::socket socket(io_service);
-
-                ros::Rate loop_rate(dense_vision_comm_rate_);
-
-                while(n_.ok())
-                {
-                    acceptor.accept(socket);
-                    while(n_.ok())
-                    {
-
-                        boost::array<char, 4> buf;
-                        boost::system::error_code error;
-                        size_t len = boost::asio::read(socket, boost::asio::buffer(buf),
-                                                       boost::asio::transfer_all(), error);
-                        if (error == boost::asio::error::eof)
-                            break; // Connection closed cleanly by peer.
-                        else if (error)
-                            throw boost::system::system_error(error); // Some other error.
-
-                        boost::system::error_code ignored_error;
-
-                        rgb_mutex_.lock();
-                        boost::asio::write (socket, boost::asio::buffer (image_buffer_, 640*480*3*sizeof(uchar))  ,
-                                            boost::asio::transfer_all(), ignored_error);
-                        rgb_mutex_.unlock();
-
-                        depth_mutex_.lock();
-                        boost::asio::write (socket, boost::asio::buffer (depth_buffer_, 640*480*sizeof(float)),
-                                            boost::asio::transfer_all(), ignored_error);
-                        depth_mutex_.unlock();
-
-                        loop_rate.sleep();
-                    }
-                }
-
-            }
-            catch (std::exception& e)
-            {
-                std::cerr << e.what() << std::endl;
-                exit(1);
-            }
         }
 
 
     private:
-        ros::Subscriber rgb_subscriber_;
-        ros::Subscriber disparity_subscriber_;
-
-        boost::array<char,640*480*3> image_buffer_;
-        boost::array<float,640*480> depth_buffer_;
-
-        boost::mutex rgb_mutex_;
-        boost::mutex depth_mutex_;
-
-        double dense_vision_comm_rate_;
+        boost::shared_ptr<DenseVisionClient> dense_vision_client;
     };
 }
 

@@ -1,8 +1,8 @@
 /*
- *  dense_vision_client.cpp
+ *  DenseVisionClient.h
  *
  *
- *  Created on: Aug 12, 2014
+ *  Created on: Aug 15, 2014
  *  Authors:   Francisco Viña          Yasemin Bekiroglu
  *            fevb <at> kth.se        yaseminb <at> kth.se
  */
@@ -33,33 +33,50 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef DENSE_VISION_CLIENT_H_
+#define DENSE_VISION_CLIENT_H_
+
 #include <ros/ros.h>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <sensor_msgs/Image.h>
 #include <stereo_msgs/DisparityImage.h>
-#include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <dense_vision_client/DenseVisionClient.h>
 
-
-
-int main(int argc, char **argv)
+class DenseVisionClient
 {
+public:
 
-    ros::init(argc, argv, "dense_vision_client_node");
+    DenseVisionClient(ros::NodeHandle nh_private);
 
-    DenseVisionClient dense_vision_client(ros::NodeHandle("~"));
-    dense_vision_client.getROSParameters();
+    virtual ~DenseVisionClient();
 
-    ros::AsyncSpinner s(2);
-    s.start();
+    void getROSParameters();
 
-    ros::Duration(1.0).sleep();
-    dense_vision_client.initConnection();
+    void initConnection();
 
-    ros::waitForShutdown();
+    void topicCallbackRGB(const sensor_msgs::Image::ConstPtr &msg);
 
-    return 0;
-}
+    void topicCallbackDisparity(const stereo_msgs::DisparityImage::ConstPtr &msg);
+
+    void topicCallbackDepth(const sensor_msgs::Image::ConstPtr &msg);
+
+    // sends the rgb + depth images to dense vision server via TCP
+    void sendDataToServer();
+
+
+private:
+    ros::NodeHandle nh_private_;
+
+    ros::Subscriber rgb_subscriber_;
+    ros::Subscriber disparity_subscriber_;
+
+    boost::array<char,640*480*3> image_buffer_;
+    boost::array<float,640*480> depth_buffer_;
+
+    boost::mutex rgb_mutex_;
+    boost::mutex depth_mutex_;
+
+    double dense_vision_comm_rate_;
+};
+
+#endif
