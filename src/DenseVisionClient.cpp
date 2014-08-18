@@ -55,7 +55,7 @@ void DenseVisionClient::getROSParameters()
     nh_private_.param("dense_vision_comm_rate", dense_vision_comm_rate_, 30.0);
 
     // determine whether to use depth image or disparity image
-    nh_private_.param("use_depth_", use_depth_, false);
+    nh_private_.param("use_depth", use_depth_, false);
 
 }
 

@@ -9,7 +9,7 @@
     <param name="use_depth" value="$(arg use_depth)" />
     <remap from="/dense_vision_client/rgb" to="/$(arg camera)/rgb/image_rect_color" />
     <remap from="/dense_vision_client/disparity" to="/$(arg camera)/depth_registered/disparity" />
-    <remap from="/dense_vision_client/depth" to="/$(arg camera)/depth_registered/image_rect_raw" />
+    <remap from="/dense_vision_client/depth" to="/$(arg camera)/depth_registered/hw_registered/image_rect_raw" />
   </node>
 
 </launch>
