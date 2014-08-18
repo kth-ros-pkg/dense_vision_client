@@ -52,6 +52,10 @@ public:
 
     void getROSParameters();
 
+    // subscribe to rgb + disparity (or depth) topics
+    void initTopicSub();
+
+    // initialize TCP socket connection with Aragorn
     void initConnection();
 
     void topicCallbackRGB(const sensor_msgs::Image::ConstPtr &msg);
@@ -69,6 +73,7 @@ private:
 
     ros::Subscriber rgb_subscriber_;
     ros::Subscriber disparity_subscriber_;
+    ros::Subscriber depth_subscriber_;
 
     boost::array<char,640*480*3> image_buffer_;
     boost::array<float,640*480> depth_buffer_;
@@ -77,6 +82,7 @@ private:
     boost::mutex depth_mutex_;
 
     double dense_vision_comm_rate_;
+    bool use_depth_;
 };
 
 #endif

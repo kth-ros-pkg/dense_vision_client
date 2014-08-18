@@ -57,6 +57,7 @@ namespace dense_vision_client
 
            dense_vision_client = boost::shared_ptr<DenseVisionClient>(new DenseVisionClient(nh_private));
            dense_vision_client->getROSParameters();
+           dense_vision_client->initTopicSub();
            dense_vision_client->initConnection();
 
         }

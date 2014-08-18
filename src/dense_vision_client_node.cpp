@@ -53,6 +53,8 @@ int main(int argc, char **argv)
     DenseVisionClient dense_vision_client(ros::NodeHandle("~"));
     dense_vision_client.getROSParameters();
 
+    dense_vision_client.initTopicSub();
+
     ros::AsyncSpinner s(2);
     s.start();
 

@@ -41,8 +41,7 @@
 
 DenseVisionClient::DenseVisionClient(ros::NodeHandle nh_private) : nh_private_(nh_private)
 {
-    rgb_subscriber_ = nh_private_.subscribe("rgb", 1, &DenseVisionClient::topicCallbackRGB, this);
-    disparity_subscriber_ = nh_private_.subscribe("disparity", 1, &DenseVisionClient::topicCallbackDisparity, this);
+
 }
 
 DenseVisionClient::~DenseVisionClient()
@@ -54,6 +53,23 @@ void DenseVisionClient::getROSParameters()
 {
     // rate in Hz at which to communicate with DV server running on Aragorn
     nh_private_.param("dense_vision_comm_rate", dense_vision_comm_rate_, 30.0);
+
+    // determine whether to use depth image or disparity image
+    nh_private_.param("use_depth_", use_depth_, false);
+
+}
+
+void DenseVisionClient::initTopicSub()
+{
+    rgb_subscriber_ = nh_private_.subscribe("rgb", 1, &DenseVisionClient::topicCallbackRGB, this);
+    if(!use_depth_)
+    {
+        disparity_subscriber_ = nh_private_.subscribe("disparity", 1, &DenseVisionClient::topicCallbackDisparity, this);
+    }
+    else
+    {
+        depth_subscriber_ = nh_private_.subscribe("depth", 1, &DenseVisionClient::topicCallbackDepth, this);
+    }
 
 }
 
@@ -68,7 +84,6 @@ void DenseVisionClient::topicCallbackRGB(const sensor_msgs::Image::ConstPtr &msg
 {
     cv_bridge::CvImageConstPtr cv_ptr_rgb = cv_bridge::toCvShare(msg,
                                                                  sensor_msgs::image_encodings::BGR8);
-
 
     uchar *data_img;
     data_img = cv_ptr_rgb->image.data;
@@ -109,6 +124,27 @@ void DenseVisionClient::topicCallbackDisparity(const stereo_msgs::DisparityImage
         }
     }
     depth_mutex_.unlock();
+}
+
+void DenseVisionClient::topicCallbackDepth(const sensor_msgs::Image::ConstPtr &msg)
+{
+    cv_bridge::CvImageConstPtr cv_ptr_depth = cv_bridge::toCvShare(msg,
+                                                              sensor_msgs::image_encodings::TYPE_32FC1);
+
+     uchar *data_depth = cv_ptr_depth->image.data;
+
+     depth_mutex_.lock();
+     // copy to depth buffer
+     for(int i=0;i<480;i++)
+     {
+         float *rowptr=(float*)(data_depth + i*640*sizeof(float));
+
+         for(int j=0;j<640;j++)
+         {
+             depth_buffer_[i*640+j]=rowptr[j];
+         }
+     }
+     depth_mutex_.unlock();
 }
 
 // sends the rgb + depth images to dense vision server via TCP

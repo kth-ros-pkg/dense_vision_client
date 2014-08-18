@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node ns="camera" pkg="nodelet" type="nodelet" name="dense_vision_client" args="load dense_vision_client/DenseVisionClientNodelet camera_nodelet_manager --no-bond" respawn="false">
+  <arg name="use_depth" default="false" />
+  <arg name="camera" default="camera" />
+
+  <node ns="$(arg camera)" pkg="nodelet" type="nodelet" name="dense_vision_client" args="load dense_vision_client/DenseVisionClientNodelet camera_nodelet_manager --no-bond" respawn="false">
     <rosparam command="load" file="$(find dense_vision_client)/config/dense_vision_client.yaml" />
-    <remap from="/camera/dense_vision_client/rgb" to="/camera/rgb/image_rect_color" />
-    <remap from="/camera/dense_vision_client/disparity" to="/camera/depth_registered/disparity" />
+    <remap from="/$(arg camera)/dense_vision_client/rgb" to="/$(arg camera)/rgb/image_rect_color" />
+    <remap from="/$(arg camera)/dense_vision_client/disparity" to="/$(arg camera)/depth_registered/disparity" />
+    <remap from="/$(arg camera)/dense_vision_client/depth" to="/$(arg camera)/depth_registered/image_rect_raw" />
   </node>
 
 </launch>
