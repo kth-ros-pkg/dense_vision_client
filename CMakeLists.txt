@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(dense_vision_client)
 
 find_package(OpenCV REQUIRED)
-find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge sensor_msgs stereo_msgs
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge sensor_msgs stereo_msgs tf
 )
 find_package(Boost REQUIRED COMPONENTS system thread)
 
@@ -16,7 +16,7 @@ include_directories(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES dense_vision_client_nodelet
-  CATKIN_DEPENDS roscpp cv_bridge sensor_msgs stereo_msgs
+  CATKIN_DEPENDS roscpp cv_bridge sensor_msgs stereo_msgs tf
   DEPENDS boost opencv
 )
 

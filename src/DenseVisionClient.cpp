@@ -38,7 +38,6 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 
-
 DenseVisionClient::DenseVisionClient(ros::NodeHandle nh_private) : nh_private_(nh_private)
 {
 
@@ -57,6 +56,8 @@ void DenseVisionClient::getROSParameters()
     // determine whether to use depth image or disparity image
     nh_private_.param("use_depth", use_depth_, false);
 
+    // set the child frame ID of tracked object
+    nh_private_.param("child_frame_id", child_frame_id_, std::string("DV_tracked_object"));
 }
 
 void DenseVisionClient::initTopicSub()
@@ -75,15 +76,39 @@ void DenseVisionClient::initTopicSub()
 
 void DenseVisionClient::initConnection()
 {
-    boost::thread send_data_to_server_thread(boost::bind(&DenseVisionClient::sendDataToServer, this));
-    send_data_to_server_thread.detach();
+    // wait to obtain frame ID from RGB callback
+    boost::unique_lock<boost::mutex> lock(frame_id_mutex_);
+    while(frame_id_.empty())
+    {
+        frame_id_cond_.wait(lock);
+    }
+
+    boost::thread communicate_with_aragorn_thread(boost::bind(&DenseVisionClient::communicateWithAragorn, this));
+    communicate_with_aragorn_thread.detach();
 }
 
 
 void DenseVisionClient::topicCallbackRGB(const sensor_msgs::Image::ConstPtr &msg)
 {
-    cv_bridge::CvImageConstPtr cv_ptr_rgb = cv_bridge::toCvShare(msg,
-                                                                 sensor_msgs::image_encodings::BGR8);
+    // set the frame id of the tracked object
+    static bool frame_id_set = false;
+    if(!frame_id_set)
+    {
+        boost::lock_guard<boost::mutex> lock(frame_id_mutex_);
+        frame_id_ = msg->header.frame_id;
+        frame_id_set = true;
+        frame_id_cond_.notify_one();
+    }
+
+    cv_bridge::CvImageConstPtr cv_ptr_rgb;
+    if(msg->encoding == "bgr8")
+    {
+        cv_ptr_rgb = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
+    }
+    else if(msg->encoding == "rgb8")
+    {
+        cv_ptr_rgb = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::RGB8);
+    }
 
     uchar *data_img;
     data_img = cv_ptr_rgb->image.data;
@@ -147,8 +172,7 @@ void DenseVisionClient::topicCallbackDepth(const sensor_msgs::Image::ConstPtr &m
      depth_mutex_.unlock();
 }
 
-// sends the rgb + depth images to dense vision server via TCP
-void DenseVisionClient::sendDataToServer()
+void DenseVisionClient::communicateWithAragorn()
 {
     try
     {
@@ -164,18 +188,39 @@ void DenseVisionClient::sendDataToServer()
             while(nh_private_.ok())
             {
 
-                boost::array<char, 4> buf;
-                boost::system::error_code error;
-                size_t len = boost::asio::read(socket, boost::asio::buffer(buf),
-                                               boost::asio::transfer_all(), error);
-                if (error == boost::asio::error::eof)
-                    break; // Connection closed cleanly by peer.
-                else if (error)
-                    throw boost::system::system_error(error); // Some other error.
+                // get the pose and publish it to TF
+                {
+                    boost::array<double, 6> buf_pose;
+                    boost::system::error_code error;
+                    size_t len = boost::asio::read(socket, boost::asio::buffer(buf_pose),
+                                                   boost::asio::transfer_all(), error);
+                    if (error == boost::asio::error::eof)
+                        break; // Connection closed cleanly by peer.
+                    else if (error)
+                        throw boost::system::system_error(error); // Some other error.
+
+                    // Convert translation to meters and
+                    // Transform the pose to right-hand system
+                    for(unsigned int i=0; i<3; i++) buf_pose[i] = buf_pose[i]/1000.0;
+                    buf_pose[1] = -buf_pose[1];
+
+                    // transform the pose to StampedTransform format and publish it
+                    tf::StampedTransform object_transform;
+                    object_transform.setOrigin(tf::Vector3(buf_pose[0], buf_pose[1], buf_pose[2]));
+
+                    tf::Quaternion q;
+                    q.setRPY(buf_pose[3], buf_pose[4], buf_pose[5]);
+
+                    object_transform.setRotation(q);
+                    object_transform.stamp_ = ros::Time::now();
+                    object_transform.child_frame_id_ = child_frame_id_;
+                    object_transform.frame_id_ = frame_id_;
+
+                    tfb_.sendTransform(object_transform);
+                }
 
 
-                const unsigned int ch=3;
-
+                // send the RGB + disparity images
 
                 boost::system::error_code ignored_error;
 
@@ -196,6 +241,7 @@ void DenseVisionClient::sendDataToServer()
     }
     catch (std::exception& e)
     {
+        ROS_ERROR("Exception in Aragorn communication thread");
         std::cerr << e.what() << std::endl;
         exit(1);
     }

@@ -41,6 +41,7 @@
 #include <boost/thread.hpp>
 #include <sensor_msgs/Image.h>
 #include <stereo_msgs/DisparityImage.h>
+#include <tf/transform_broadcaster.h>
 
 class DenseVisionClient
 {
@@ -65,7 +66,9 @@ public:
     void topicCallbackDepth(const sensor_msgs::Image::ConstPtr &msg);
 
     // sends the rgb + depth images to dense vision server via TCP
-    void sendDataToServer();
+    // and receives the tracked object pose.
+    // Publishes received pose to TF
+    void communicateWithAragorn();
 
 
 private:
@@ -80,6 +83,12 @@ private:
 
     boost::mutex rgb_mutex_;
     boost::mutex depth_mutex_;
+
+    tf::TransformBroadcaster tfb_;
+    std::string frame_id_;
+    std::string child_frame_id_;
+    boost::mutex frame_id_mutex_;
+    boost::condition_variable frame_id_cond_;
 
     double dense_vision_comm_rate_;
     bool use_depth_;
