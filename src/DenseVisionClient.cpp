@@ -37,6 +37,8 @@
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 
 DenseVisionClient::DenseVisionClient(ros::NodeHandle nh_private) : nh_private_(nh_private)
 {
@@ -190,7 +192,7 @@ void DenseVisionClient::communicateWithAragorn()
 
                 // get the pose and publish it to TF
                 {
-                    boost::array<double, 6> buf_pose;
+                    boost::array<double, 12> buf_pose;
                     boost::system::error_code error;
                     size_t len = boost::asio::read(socket, boost::asio::buffer(buf_pose),
                                                    boost::asio::transfer_all(), error);
@@ -199,17 +201,40 @@ void DenseVisionClient::communicateWithAragorn()
                     else if (error)
                         throw boost::system::system_error(error); // Some other error.
 
+
+                    Eigen::Vector3d t(buf_pose[0], buf_pose[1], buf_pose[2]);
+                    Eigen::Matrix3d Rl;
+                    Rl << buf_pose[3], buf_pose[4], buf_pose[5],
+                          buf_pose[6], buf_pose[7], buf_pose[8],
+                          buf_pose[9], buf_pose[10], buf_pose[11];
+
                     // Convert translation to meters and
                     // Transform the pose to right-hand system
-                    for(unsigned int i=0; i<3; i++) buf_pose[i] = buf_pose[i]/1000.0;
-                    buf_pose[1] = -buf_pose[1];
+
+                    // transform the translation to right-handed system
+                    for(unsigned int i=0; i<3; i++) t(i) = t(i)/1000.0;
+                    t(1) = -t(1);
+
+                    // transform the rotation matrix to right-handed system
+
+                    // apply transformation Sz = diag(1,1,-1)
+                    // Sz*R*Sz
+                    Eigen::Matrix3d Sz = Eigen::Matrix<double, 3, 3>::Identity();
+                    Sz(2,2) = -1.0;
+                    Eigen::Matrix3d R = Sz*Rl*Sz;
+
+                    // invert Y and Z (2nd and 3rd) column of the resulting rotation matrix
+                    R.row(1) = -1.0*(R.row(1)).eval();
+                    R.row(2) = -1.0*(R.row(2)).eval();
+
+                    Eigen::Quaterniond q_eigen;
+                    q_eigen = R;
 
                     // transform the pose to StampedTransform format and publish it
                     tf::StampedTransform object_transform;
-                    object_transform.setOrigin(tf::Vector3(buf_pose[0], buf_pose[1], buf_pose[2]));
+                    object_transform.setOrigin(tf::Vector3(t(0), t(1), t(2)));
 
-                    tf::Quaternion q;
-                    q.setRPY(buf_pose[3], buf_pose[4], buf_pose[5]);
+                    tf::Quaternion q(q_eigen.x(), q_eigen.y(), q_eigen.z(), q_eigen.w());
 
                     object_transform.setRotation(q);
                     object_transform.stamp_ = ros::Time::now();

@@ -5,19 +5,21 @@ find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge sensor_msgs stereo_msgs tf
 )
 find_package(Boost REQUIRED COMPONENTS system thread)
+find_package(Eigen REQUIRED)
 
 include_directories(
   include
   ${OpenCV_INCLUDE_DIRS} 
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES dense_vision_client_nodelet
   CATKIN_DEPENDS roscpp cv_bridge sensor_msgs stereo_msgs tf
-  DEPENDS boost opencv
+  DEPENDS boost opencv eigen
 )
 
 add_executable(dense_vision_client_node src/dense_vision_client_node.cpp src/DenseVisionClient.cpp)
