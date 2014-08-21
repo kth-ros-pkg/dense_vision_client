@@ -39,10 +39,11 @@
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
+#include <geometry_msgs/PoseStamped.h>
 
 DenseVisionClient::DenseVisionClient(ros::NodeHandle nh_private) : nh_private_(nh_private)
 {
-
+    pose_publisher_ = nh_private.advertise<geometry_msgs::PoseStamped>("DV_object_pose", 1);
 }
 
 DenseVisionClient::~DenseVisionClient()
@@ -242,6 +243,13 @@ void DenseVisionClient::communicateWithAragorn()
                     object_transform.frame_id_ = frame_id_;
 
                     tfb_.sendTransform(object_transform);
+
+                    // publish also as PoseStamped directly
+                    geometry_msgs::PoseStamped object_pose;
+                    tf::poseTFToMsg(object_transform, object_pose.pose);
+                    object_pose.header.frame_id = object_transform.frame_id_;
+                    object_pose.header.stamp = object_transform.stamp_;
+                    pose_publisher_.publish(object_pose);
                 }
 
 

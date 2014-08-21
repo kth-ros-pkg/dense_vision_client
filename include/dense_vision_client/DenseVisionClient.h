@@ -90,6 +90,8 @@ private:
     boost::mutex frame_id_mutex_;
     boost::condition_variable frame_id_cond_;
 
+    ros::Publisher pose_publisher_;
+
     double dense_vision_comm_rate_;
     bool use_depth_;
 };
